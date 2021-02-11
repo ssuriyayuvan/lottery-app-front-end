@@ -8,7 +8,6 @@ import { DatePicker, Space } from 'antd';
 import moment from 'moment-timezone';
 import CustomizedTables from './table';
 import ReportTable from './modalDetail';
-import { Router } from 'react-router';
 
 const possible_winnig_amt = [
     {'ticket_rate':15, 'combination':'C', 'price_amount':1000},
@@ -56,7 +55,7 @@ class Dasdboard extends Component {
         this.today = moment().format('YYYY-MM-DD')
         this.state = {
             userNames: [],
-            userName: "",
+            userName: "select user",
             date: this.today,
             showTime: "11:00 AM",
             excess: 0,
@@ -182,6 +181,7 @@ class Dasdboard extends Component {
                         }
                         else if(t_number[2] == winning_num[2])
                         {
+                            console.log(rate, possible_winnig_amt.filter(x=> x.ticket_rate == rate && x.combination == 'C'))
                             winning_amt = possible_winnig_amt.filter(x=> x.ticket_rate == rate && x.combination == 'C')[0].price_amount;
                             winning_balance = winning_balance + winning_amt;
                         }               
@@ -223,11 +223,18 @@ class Dasdboard extends Component {
     }
 
     handleUserNameSelection = event => {
-        const user = this.state.userNames.filter(x=> x.name == event.target.value);
-        this.setState({ userName: event.target.value, controll: false, outStBl : user.outstanding_balance},()=>{
+        const user = this.state.userNames.filter(x=> x.name == event.target.value)[0];
+        this.setState({
+            userName: event.target.value
+        })
+        console.log(event.target.value)
+        if (event.target.value !== 'select user') {
+        this.getPurchasedTickets(event.target.value);
+        this.setState({ controll: false, outStBl : user.outstanding_balance},()=>{
             this.getWinningNumber()
         })
-        this.remove()
+        }
+        //this.remove()
     }
 
     handleShowTimeSelection = (event) => {
@@ -251,7 +258,7 @@ class Dasdboard extends Component {
     componentDidMount() {
         if (!localStorage.getItem('token')) {            
             Axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/v1/user`).then((response) => {                
-                this.setState({ userNames: response.data.data.attributes.data, userName: response.data.data.attributes.data[0].name, outStBl : response.data.data.attributes.data[0].outstanding_balance })
+                this.setState({ userNames: response.data.data.attributes.data })
             }).catch((err) => {
             }); 
             this.getWinningNumber();
@@ -268,13 +275,13 @@ class Dasdboard extends Component {
         });
     }
 
-    componentDidUpdate() {
+    getPurchasedTickets = (userName) => {
         let i = 0;
-        if (this.state.userName != '') {
+        
           let data = Object.assign({
                 data: {
                     attributes: {
-                        user: this.state.userNames.filter(x => x.name == this.state.userName)[0]._id,
+                        user: this.state.userNames.filter(x => x.name == userName)[0]._id,
                         date: this.state.date
                     }
                 }
@@ -300,7 +307,6 @@ class Dasdboard extends Component {
                 }).catch((err) => {
                 });
             }
-        }
     }
 
     Calculate = () => {
@@ -319,7 +325,7 @@ class Dasdboard extends Component {
         this.setState({reportModal : false})
     }
 
-    addWinNum = (rate) => {        
+    addWinNum = () => {        
         history.push('/winning-number')
     }
 
@@ -327,17 +333,20 @@ class Dasdboard extends Component {
         return (
             <div>           
             <Grid style={{padding:12}} container direction="row" justify="center" alignItems="center">
-                <Grid item xs={12} sm={8} md={10}>
+                <Grid item xs={12} sm={10} md={10}>
                     <h4>Outstating Balance : {this.state.outStBl}</h4>
                     <Paper style={{border : '1px solid #cccccc5c'}}>                   
                     <div className="ticket-form">
                         <div className="form-outline">
                             <select className="select-box" value={this.state.userName} onChange={this.handleUserNameSelection}>
-                                {this.state.userNames.map((value, index) => <option key={index} value={value.name}>{value.name}</option>)}
+                                <option value="select user">Select User</option>
+                                {
+                                    this.state.userNames.map((value, index) => <option key={index} value={value.name}>{value.name}</option>)
+                                }
                             </select>
                         </div>
                         <div className="form-outline">
-                        <DatePicker className="form-control datePicker" defaultValue={moment(this.today, 'YYYY-MM-DD')} format={'YYYY-MM-DD'} onChange={this.dataPicker} />
+                        <DatePicker disabled={true} className="form-control datePicker" defaultValue={moment(this.today, 'YYYY-MM-DD')} format={'YYYY-MM-DD'} />
                         </div>
                         <div className="form-outline">
                         <select className="select-box" value={this.state.showTime} onChange={this.handleShowTimeSelection}>
@@ -350,7 +359,7 @@ class Dasdboard extends Component {
                         {
                             this.state.winning_num.length > 0 ?
                              <div className="form-outline">
-                                <button style={{width:'100%', marginTop:0}} className="btn  add-user-button" disabled={this.state.response.length > 0 ? false : true} onClick={this.Calculate}>Calculate</button>
+                                <button style={{width:'100%', marginTop:0}} className="btn  add-user-button" disabled={this.state.response.length > 0 ?  false : true} onClick={this.Calculate}>Calculate</button>
                             </div> :
                             <div className="form-outline">
                                 <button style={{width:'100%', marginTop:0}} className="btn  add-user-button" onClick={this.addWinNum}>Add Winning Number</button>

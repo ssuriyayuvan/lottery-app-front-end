@@ -60,6 +60,7 @@ export default function CustomizedTables(props) {
           <TableRow>
             <StyledTableCell align={"center"}>S.No</StyledTableCell>
             <StyledTableCell>Ticket Name</StyledTableCell>
+            <StyledTableCell>Show Time</StyledTableCell>
             <StyledTableCell>Rate</StyledTableCell>
             <StyledTableCell>Qty</StyledTableCell>
             <StyledTableCell>Total</StyledTableCell>
@@ -76,6 +77,7 @@ export default function CustomizedTables(props) {
                 {row.sno}
               </StyledTableCell>
               <StyledTableCell>{row.name}</StyledTableCell>
+              <StyledTableCell>{row.show_time}</StyledTableCell>
               <StyledTableCell>{row.rate}</StyledTableCell>
               <StyledTableCell>{row.qty}</StyledTableCell>
               <StyledTableCell>{row.value}</StyledTableCell>

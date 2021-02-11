@@ -19,24 +19,31 @@ class WinnginNumber extends Component {
             show_time: '11:00 AM',
             gender: 'Male',
             ticketNames : [],
+            win_number_list : [],
             tickets : [],
             nameError: '',
             emailError: '',
             phoneError: '',
             message: '',
             searchName: "",
+            input:"",
             btnDisable: true,
         }
     }
 
     componentDidMount = () => {
-            Axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/v1/master`).then((response) => {
-                //console.log(response.data)
+            Axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/v1/master`).then((response) => {              
                 this.setState({ ticketNames: response.data.data.attributes.data, tickets : response.data.data.attributes.data })            
             }).catch((err) => {
         });
-        Axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/v1/purchase/winning-announcement`).then((response) => {           
-        }).catch((err) => {
+        this.getWinList()
+    }
+
+    getWinList = () => {
+        Axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/v1/purchase/winning-announcement?date=${this.today}&&show_time=${this.state.show_time}`).then((response) => {           
+            this.setState({win_number_list : response.data.data.attributes.data})
+                console.log(response.data.data.attributes.data)
+            }).catch((err) => {
         });
     }
 
@@ -61,7 +68,8 @@ class WinnginNumber extends Component {
     }
 
     addWinNumber = (event) => {
-        this.state.tickets.map(item => {
+        this.state.tickets.map((item, index) => {
+            console.log(item)
             let data = Object.assign({
                 data: {
                     attributes: {
@@ -74,8 +82,11 @@ class WinnginNumber extends Component {
                 }
             })
             return Axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/v1/purchase/winning-announcement`, data).then((response) => {
-                this.setState({ message: response.data.data.attributes.message, pagenation: true })
-                toast.success(this.state.message);
+                this.setState({ message: response.data.data.attributes.message, pagenation: true });
+                if(index == this.state.tickets.length-1){
+                    toast.success(this.state.message);
+                    this.setState({btnDisable : true});
+                }
             }).catch((err) => {
                 this.setState({ message: err.response.data.data.attributes.message })
                 return toast.error(this.state.message);
@@ -84,7 +95,9 @@ class WinnginNumber extends Component {
     }    
 
     handleShowTimeSelection = (event) => {
-        this.setState({ showTime: event.target.value, controll: false })
+        this.setState({ show_time: event.target.value, controll: false },()=>{
+            this.getWinList()
+        })
     }
    
     handleWinNum = (e, item) => {  
@@ -92,9 +105,15 @@ class WinnginNumber extends Component {
             tickets: this.state.tickets.map(el => (el.name === item.name ? Object.assign({}, el, { "winning_number" : e.target.value }) : el))
         },()=>{
             let disable = false;
-            this.state.tickets.map(item => {
+            this.state.tickets.map(item => {                
                 if(!item.winning_number){
-                    disable = true
+                    const win_number = this.state.win_number_list.filter(x=>x.ticket.name == item.name);
+                    if(win_number.length == 0){
+                        disable = true
+                    }
+                    else{
+                        this.state.tickets.map(el => (el.name === item.ticket.name ? Object.assign({}, el, { "winning_number" : item.winning_number }) : el))
+                    }
                 }
             })
             this.setState({
@@ -103,29 +122,30 @@ class WinnginNumber extends Component {
         });      
     }
 
+    onChange = (e) => {
+        this.setState({input : e.target.value})
+    }
+
     render() {
        const {winning_number, ticket_name, show_time, date, ticketNames} = this.state;
         return (
             <div>           
             <Grid style={{padding:12}} container direction="row" justify="center" alignItems="center">
-                <Grid item xs={12} sm={12} md={6}>
+                <Grid item xs={12} sm={12} md={5}>
                     <h4>Add Winning Number</h4>
                     <Paper style={{border : '1px solid #cccccc5c'}}>                   
                     <div className="ticket-form">                        
-                        <div className="form-outline">
-                        <DatePicker className="form-control datePicker" disabled={true} defaultValue={moment(this.today, 'YYYY-MM-DD')} format={'YYYY-MM-DD'} onChange={this.dataPicker} />
+                        <div className="form-outline" style={{marginBottom:20}}>
+                            <DatePicker className="form-control datePicker" disabled={true} defaultValue={moment(this.today, 'YYYY-MM-DD')} format={'YYYY-MM-DD'} onChange={this.dataPicker} />
                         </div>
                         <div className="form-outline">
-                        <select className="select-box" value={this.state.showTime} onChange={this.handleShowTimeSelection}>
+                        <select className="select-box" value={show_time} onChange={this.handleShowTimeSelection}>
                                 <option value="11:00 AM"> 11:00 AM</option>
                                 <option value="02:00 PM"> 02:00 PM</option>
                                 <option value="05:00 PM"> 05:00 PM</option>
                                 <option value="08:00 PM"> 08:00 PM </option>
                             </select>
-                        </div>                       
-                        <div className="form-outline">
-                            <button style={{width:'100%', marginTop:0}} className="btn  add-user-button" onClick={this.Calculate}>Submit</button>
-                        </div>
+                        </div>  
                         </div>
                     </Paper>
                 </Grid>                
@@ -136,6 +156,7 @@ class WinnginNumber extends Component {
                     <Paper style={{border : '1px solid #cccccc5c'}}>                       
                         {
                             ticketNames.map((item, index)=> {
+                                const win_number = this.state.win_number_list?.filter(x=> x.ticket.name == item.name);
                                 return (
                                     <>
                                     <div className="ticket-form">                        
@@ -143,10 +164,10 @@ class WinnginNumber extends Component {
                                         <CustomizedInputs height={35} purchase={true} value={item.name} disabled={true} label="Ticket Name"/> 
                                     </div>
                                     <div className="form-outline" style={{display:'flex', marginLeft : 15, marginTop: index == 0 ? 10 :  0}}> 
-                                        <span style={{fontSize : 15, marginRight : 5, color: 'red'}}>*</span>    
-                                        <CustomizedInputs height={35} purchase={true} onBlur={(e)=>this.handleWinNum(e, item)} label="Winning Number"/> 
+                                        <span style={{fontSize : 15, marginRight : 5, color: 'red'}}>*</span>                                           
+                                        <CustomizedInputs height={35} disabled={win_number.length > 0 ? true : false} label={win_number.length > 0 ? win_number[0].winning_number: 'Winning Number'} onChange={(e)=>this.handleWinNum(e, item)} purchase={true}  />                                                                                
                                     </div>                                          
-                                    </div>                                   
+                                    </div>                       
                                     </>
                                 )
                             })

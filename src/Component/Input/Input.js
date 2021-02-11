@@ -40,6 +40,7 @@ export default function CustomizedInputs(props) {
           placeholder={props.label}
           onBlur={props.onBlur}
           disabled={props.disabled}
+          defaultValue={props.defaultValue}
         />       
     </div>
      <span style={{color: "red", fontSize:11, visibility: props.visibility? "" : "hidden"}}>{"Please fill the field."}</span>
